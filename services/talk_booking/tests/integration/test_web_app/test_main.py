@@ -1,7 +1,6 @@
 import pytest
-from starlette.testclient import TestClient
-
 from services.talk_booking.web_app.main import app
+from starlette.testclient import TestClient
 
 
 @pytest.fixture
