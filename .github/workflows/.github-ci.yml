@@ -18,7 +18,7 @@ build-python-ci-image:
 
   stage: docker
   before_script:
-    - cd ci_cd/python/
+    - cd .github/workflows/
   script:
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
     - docker build -t registry.github.com/NoirEgoiste/talk-booking:cicd-python3.11-slim .
