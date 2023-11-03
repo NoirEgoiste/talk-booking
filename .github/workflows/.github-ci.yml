@@ -1,28 +1,66 @@
-stages:
-  - docker
-  - tests
+#stages:
+#  - docker
+#  - tests
+#
+#variables:
+#  DOCKER_DRIVER: overlay2
+#  DOCKER_TLS_CERTDIR: "/certs"
+#
+#cache:
+#  key: ${CI_JOB_NAME}
+#  paths:
+#    - ${CI_PROJECT_DIR}/services/talk_booking/.venv/
+#
+#build-python-ci-image:
+#  image: docker:19.03.0
+#  services:
+#    - docker:19.03.0-dind
+#
+#  stage: docker
+#  before_script:
+#    - cd .github/workflows/
+#  script:
+#    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+#    - docker build -t registry.github.com/NoirEgoiste/talk-booking:cicd-python3.11-slim .
+#    - docker push registry.github.com/NoirEgoiste/talk-booking:cicd-python3.11-slim
+#
+#include:
+#  - local: /services/talk_booking/ci-cd.yml
 
-variables:
-  DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: "/certs"
+name: talk-booking
 
-cache:
-  key: ${CI_JOB_NAME}
-  paths:
-    - ${CI_PROJECT_DIR}/services/talk_booking/.venv/
+on:
+  push:
+    branches:
+      - main
 
-build-python-ci-image:
-  image: docker:19.03.0
-  services:
-    - docker:19.03.0-dind
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-  stage: docker
-  before_script:
-    - cd .github/workflows/
-  script:
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
-    - docker build -t registry.github.com/NoirEgoiste/talk-booking:cicd-python3.11-slim .
-    - docker push registry.github.com/NoirEgoiste/talk-booking:cicd-python3.11-slim
+    services:
+      docker:
+        image: docker:19.03.0-dind
 
-include:
-  - local: /services/talk_booking/ci-cd.yml
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11-slim
+
+    - name: Set Docker buildx
+      run: docker buildx create --use
+
+    - name: Log in to Docker Registry
+      run: docker login -u ${{ secrets.CI_REGISTRY_USER }} -p ${{ secrets.CI_REGISTRY_PASSWORD }} ${{ secrets.CI_REGISTRY }}
+
+    - name: Build Docker image
+      run: docker build -t ${{ secrets.CI_REGISTRY }}/testdriven/talk-booking:cicd-python3.9-slim .
+      working-directory: /services/talk_booking
+
+    - name: Push Docker image
+      run: docker push ${{ secrets.CI_REGISTRY }}/testdriven/talk-booking:cicd-python3.9-slim
+      working-directory: /services/talk_booking
