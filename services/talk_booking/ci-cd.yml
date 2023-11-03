@@ -1,28 +1,57 @@
-service-talk-booking-code-quality:
-  stage: test
-  image: registry.github.com/NoirEgoiste/talk-booking:cicd-python3.11-slim
-  before_script:
-    - cd services/talk_booking/
-    - poetry install
-  script:
-    - poetry run flake8 .
-    - poetry run black . --check
-    - poetry run isort . --check-only --profile black
-    - poetry run bandit .
-    - poetry run safety check
+name: Python CI
 
+on:
+  push:
+    branches:
+      - main
 
-service-talk-booking-tests:
-  stage: test
-  image: registry.gitlab.com/<your-gitlab-username>/talk-booking:cicd-python3.9-slim
-  before_script:
-    - cd services/talk_booking/
-    - poetry install
-  script:
-    - poetry run workflows -m pytest --junitxml=report.xml --cov=./ --cov-report=xml tests/unit tests/integration
-  after_script:
-    - bash <(curl -s https://codecov.io/bash)
-  artifacts:
-  when: always
-  reports:
-  junit: services/talk_booking/report.xml
+jobs:
+  code_quality:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies and run code quality checks
+      run: |
+        cd services/talk_booking/
+        poetry install
+        poetry run flake8 .
+        poetry run black . --check
+        poetry run isort . --check-only --profile black
+        poetry run bandit .
+        poetry run safety check
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.11
+
+    - name: Install dependencies and run tests
+      run: |
+        cd services/talk_booking/
+        poetry install
+        poetry run workflows -m pytest --junitxml=report.xml --cov=./ --cov-report=xml tests/unit tests/integration
+        bash <(curl -s https://codecov.io/bash)
+
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Upload test report
+      uses: actions/upload-artifact@v2
+      with:
+        name: test-report
+        path: services/talk_booking/report.xml
